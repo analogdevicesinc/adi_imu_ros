@@ -1,5 +1,5 @@
 /*******************************************************************************
- *   @file   adi_imu_node.hpp
+ *   @file   adi_imu_ros_node.hpp
  *   @brief  ROS node for ADI IMU ADIS16xxx
  *   @author Sundar Palani <sundar.palani@analog.com>
 ********************************************************************************/

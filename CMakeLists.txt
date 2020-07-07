@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(adi_imu)
+project(adi_imu_ros)
 
 set(PROJ_VERSION_MAJOR 0)
 set(PROJ_VERSION_MINOR 0)
@@ -110,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES adi_imu
+#  LIBRARIES adi_imu_ros
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -131,7 +131,7 @@ add_subdirectory(external/adi_imu_driver/linux)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/adi_imu.cpp
+#   src/${PROJECT_NAME}/adi_imu_ros.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -142,7 +142,7 @@ add_subdirectory(external/adi_imu_driver/linux)
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/adi_imu_node.cpp)
+add_executable(${PROJECT_NAME}_node src/adi_imu_ros_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -208,7 +208,7 @@ install(TARGETS ${PROJECT_NAME}_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_adi_imu.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_adi_imu_ros.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
