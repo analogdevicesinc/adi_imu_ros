@@ -12,8 +12,6 @@
 #include "spi_driver.h"
 #include <cmath>
 
-#define PI 3.141592653589793238
-
 int main(int argc, char **argv)
 {
     adi_imu_Device_t imu;
@@ -50,7 +48,7 @@ int main(int argc, char **argv)
 
     /* set scaling factors for sensor outputs */
     float acclLSB  = 0.25 * 9.81 / 65536000; /* 0.25mg/2^16 */
-    float gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( PI / 180); /* 0.00625 deg / 2^16 */
+    float gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( M_PI / 180); /* 0.00625 deg / 2^16 */
     float tempLSB = (1.0/140);
 
     double accelX, accelY, accelZ, gyroX, gyroY, gyroZ;
@@ -71,8 +69,8 @@ int main(int argc, char **argv)
                 gyroY = out.gyro.y * gyroLSB;
                 gyroZ = out.gyro.z * gyroLSB;
                 // sprintf(imuout, "sys_status=%x, temp=%fC, accX=%f, accY=%f, accZ=%f, gyroX=%f, gyroY=%f, gyroZ=%f datacnt_Or_ts=%d crc=0x%x", out.sysEFlag, 25 + out.tempOut * tempLSB, accelX, accelY, accelZ, gyroX, gyroY, gyroZ, out.dataCntOrTimeStamp, out.crc);
-                // printf("Pitch = %f deg \n", 180 * atan2(accelX, sqrt(accelY*accelY + accelZ*accelZ))/PI);
-                // printf("Roll = %f deg\n", 180 * atan2(accelY, sqrt(accelX*accelX + accelZ*accelZ))/PI);
+                // printf("Pitch = %f deg \n", 180 * atan2(accelX, sqrt(accelY*accelY + accelZ*accelZ))/M_PI);
+                // printf("Roll = %f deg\n", 180 * atan2(accelY, sqrt(accelX*accelX + accelZ*accelZ))/M_PI);
             };
         }
         ROS_INFO("IMU status: %d  data count: %d  read cnt: %d\n", out.sysEFlag, out.dataCntOrTimeStamp, count);
