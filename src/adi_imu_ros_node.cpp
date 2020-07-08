@@ -60,19 +60,17 @@ int main(int argc, char **argv)
     {
         sensor_msgs::Imu msg;
 
-        for (int i=0; i<10; i++){
-            if ((ret = adi_imu_ReadBurst(&imu, &out)) >= 0) {
-                accelX = out.accl.x * acclLSB;
-                accelY = out.accl.y * acclLSB;
-                accelZ = out.accl.z * acclLSB;
-                gyroX = out.gyro.x * gyroLSB;
-                gyroY = out.gyro.y * gyroLSB;
-                gyroZ = out.gyro.z * gyroLSB;
-                // sprintf(imuout, "sys_status=%x, temp=%fC, accX=%f, accY=%f, accZ=%f, gyroX=%f, gyroY=%f, gyroZ=%f datacnt_Or_ts=%d crc=0x%x", out.sysEFlag, 25 + out.tempOut * tempLSB, accelX, accelY, accelZ, gyroX, gyroY, gyroZ, out.dataCntOrTimeStamp, out.crc);
-                // printf("Pitch = %f deg \n", 180 * atan2(accelX, sqrt(accelY*accelY + accelZ*accelZ))/M_PI);
-                // printf("Roll = %f deg\n", 180 * atan2(accelY, sqrt(accelX*accelX + accelZ*accelZ))/M_PI);
-            };
-        }
+        if ((ret = adi_imu_ReadBurst(&imu, &out)) >= 0) {
+            accelX = out.accl.x * acclLSB;
+            accelY = out.accl.y * acclLSB;
+            accelZ = out.accl.z * acclLSB;
+            gyroX = out.gyro.x * gyroLSB;
+            gyroY = out.gyro.y * gyroLSB;
+            gyroZ = out.gyro.z * gyroLSB;
+            // sprintf(imuout, "sys_status=%x, temp=%fC, accX=%f, accY=%f, accZ=%f, gyroX=%f, gyroY=%f, gyroZ=%f datacnt_Or_ts=%d crc=0x%x", out.sysEFlag, 25 + out.tempOut * tempLSB, accelX, accelY, accelZ, gyroX, gyroY, gyroZ, out.dataCntOrTimeStamp, out.crc);
+            // printf("Pitch = %f deg \n", 180 * atan2(accelX, sqrt(accelY*accelY + accelZ*accelZ))/M_PI);
+            // printf("Roll = %f deg\n", 180 * atan2(accelY, sqrt(accelX*accelX + accelZ*accelZ))/M_PI);
+        };
         ROS_INFO("IMU status: %d  data count: %d  read cnt: %d\n", out.sysEFlag, out.dataCntOrTimeStamp, count);
 
         /* prepare imu sensor message */
