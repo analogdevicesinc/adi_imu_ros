@@ -5,20 +5,22 @@ A C++ ROS node that read sensor data from ADI IMU and publishes message `sensor_
 
 ## Setup instructions
 
-1. Git clone to your catkin workspace (inside `catkin_ws/src/`)
+1. Clone repo to your catkin workspace (inside `catkin_ws/src/`)
 ```bash
 $ git clone --recursive -b master git@gitlab.analog.com:spalani1/adi_imu_ros.git
 ```
 
-2. Build
+2. Build and install
 ```bash
 $ cd catkin_ws
-$ catkin_make
+$ catkin_make install
 ```
 
 3. Run
 ```bash
-$ ./devel/lib/adi_imu_ros/adi_imu_ros_node
+$ cd catkin_ws
+$ source ./devel/setup.bash
+$ rosrun adi_imu_ros adi_imu_ros_node
 ```
 
 4. Test
