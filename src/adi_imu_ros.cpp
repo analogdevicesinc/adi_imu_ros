@@ -7,7 +7,7 @@
 
 #include <adi_imu_ros/adi_imu_ros.hpp>
 
-AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : _nh(nh), _count(0)
+AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : _nh(nh), _count(0), _rollover(0), _last_imu_count(0)
 {
 	// Load ROS parameters
 	int prodId, spiSpeed, spiMode, spiBitsPerWord, spiDelay, outputRate;
@@ -53,7 +53,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : _nh(nh), _count(0)
 
 	// Set sensors output rate
 	uint16_t output_rate = static_cast<uint16_t>(outputRate);
-	uint16_t dec_rate = (uint16_t)(4250 / output_rate) - 1;
+	uint16_t dec_rate = (uint16_t)(4000 / output_rate) - 1;
 	if ((ret = adi_imu_SetDecimationRate(&_imu, dec_rate)) < 0)
 	{
 		ROS_ERROR("Could not set the decimation rate.");
@@ -102,13 +102,27 @@ void AdiImuRos::run(void)
 	{
 		// Restart the loop if you don't get a valid data
 		ros::Time t_request = ros::Time::now();
+		adi_imu_BurstOutput_t _data;
 		int ret = adi_imu_ReadBurst(&_imu, &_data);
 		if (ret < 0)
 			continue;
 		ros::Time t_response = ros::Time::now();
 
+
+		// Restart the loop if it's the first measurement, and data is not yet synchronized
+//		if(_count == 0 && _data.dataCntOrTimeStamp != 1)
+//			continue;
+
+//		ROS_INFO("data count: %d  read cnt: %d\n", _data.dataCntOrTimeStamp, _count);
+
+		// Account for rollover before comparing the data count
+		if((_last_imu_count > _data.dataCntOrTimeStamp  + 65535*_rollover) && (_count > 65000))
+			++_rollover;
+		uint64_t imu_count = _data.dataCntOrTimeStamp + 65535*_rollover;
+
 		// Restart the loop if we already read this measurement
-		if (_data.dataCntOrTimeStamp <= _count)
+//		if (_data.dataCntOrTimeStamp <= _count)
+		if (imu_count <= _count)
 			continue;
 
 		// Otherwise, it's a valid new measurement, and we publish
@@ -119,7 +133,8 @@ void AdiImuRos::run(void)
 		const double gyroX = _data.gyro.x * gyroLSB;
 		const double gyroY = _data.gyro.y * gyroLSB;
 		const double gyroZ = _data.gyro.z * gyroLSB;
-		ROS_INFO_THROTTLE(1, "IMU status: %d  data count: %d  read cnt: %d\n", _data.sysEFlag, _data.dataCntOrTimeStamp, _count);
+//		ROS_INFO_THROTTLE(1, "IMU status: %d  data count: %d  read cnt: %d\n", _data.sysEFlag, _data.dataCntOrTimeStamp, _count);
+		ROS_INFO_THROTTLE(1, "IMU status: %d  data count: %ld  read cnt: %ld\n", _data.sysEFlag, imu_count, _count);
 
 		/* prepare imu sensor message */
 		sensor_msgs::Imu msg;
@@ -143,7 +158,8 @@ void AdiImuRos::run(void)
 		msg.linear_acceleration.z = accelZ;
 
 		_pub_imu.publish(msg);
-		ros::spinOnce();
+		_last_imu_count = imu_count;
+//		ros::spin();
 	}
 	return;
 }
