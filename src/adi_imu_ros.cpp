@@ -93,9 +93,10 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		_csv_stream.open(csv_filename.c_str(), std::ofstream::out | std::ofstream::trunc);
 		if(_csv_stream.is_open())
 		{
-			_csv_stream << "imu_count,driver_count,timestamp(ns),accX(m/s/s),accY(m/s/s),accZ(m/s/s),";
-			_csv_stream << "gyrX(rad/s),gyrY(rad/s),gyrZ(rad/s),";
-			_csv_stream << "t_request(ns),t_receive(ns),temp(C),status(none)" << std::endl;
+			_csv_stream << "error_flag,imu_count,driver_count,t_request(ns),t_receive(ns),temp(C),";
+			_csv_stream << "accX(m/s/s),accY(m/s/s),accZ(m/s/s),";
+			_csv_stream << "gyrX(rad/s),gyrY(rad/s),gyrZ(rad/s)";
+			_csv_stream << std::endl;
 		}
 		run(std::bind(&AdiImuRos::save_csv_file, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
@@ -228,10 +229,12 @@ void AdiImuRos::save_csv_file(const ros::Time t0, const ros::Time t1, const adi_
 	// Save the measurements to file if the stream is open
   if(_csv_stream.is_open())
   {
-    _csv_stream << _imu_count << _driver_count << "," << timestamp.toNSec() << ",";
-    _csv_stream << accelX << "," << accelY << "," << accelX << ",";
-    _csv_stream << gyroX << "," << gyroY << "," << gyroX << ",";
+    _csv_stream << data.sysEFlag << "," << _imu_count << "," << _driver_count << ",";
     _csv_stream << t0.toNSec() << "," << t1.toNSec() << ",";
-    _csv_stream << temperature << ","  << data.sysEFlag << std::endl;
+    _csv_stream << temperature << ",";
+    _csv_stream << std::setprecision(18);
+    _csv_stream << accelX << "," << accelY << "," << accelZ << ",";
+    _csv_stream << gyroX << "," << gyroY << "," << gyroZ << ",";
+    _csv_stream << std::endl;
   }
 }
