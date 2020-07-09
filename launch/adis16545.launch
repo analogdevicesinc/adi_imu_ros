@@ -1,0 +1,17 @@
+<launch>
+
+  <arg name="csv_folder" default="/tmp"/>
+  <arg name="imu_frame" default="imu"/>
+  <arg name="spi_dev" default="/dev/spidev0.1"/>
+  <arg name="message_type" default="adi"/>
+  <arg name="output_rate" default="2000"/>
+
+  <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adis16545" output="screen">
+    <param name="csv_folder" type="string" value="$(arg csv_folder)" />
+    <param name="imu_frame" type="string" value="$(arg imu_frame)" />
+    <param name="spi_dev" type="string" value="$(arg spi_dev)" />
+    <param name="message_type" type="string" value="$(arg message_type)" />
+    <param name="output_rate" type="int" value="$(arg output_rate)" />
+  </node>
+  
+</launch>
