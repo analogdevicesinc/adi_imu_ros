@@ -40,7 +40,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	// NOTE: These should likely be given by the adi_imu_driver, based on the prodId
 	_acclLSB  = 0.25 * 9.81 / 65536000; /* 0.25mg/2^16 */
 	_gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( M_PI / 180); /* 0.00625 deg / 2^16 */
-	_tempLSB = (1.0/140);
+	// _tempLSB = (1.0/140);
 
 	// Initialize IMU
 	int ret = adi_imu_Init(&_imu);
@@ -71,6 +71,10 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		ROS_ERROR("Could not print the IMU info.");
 		return;
 	}
+
+	// Sleep 2 seconds to let the IMU initialize
+	ROS_INFO("Waiting 1 second for the IMU to finish to initialize.");
+	ros::Duration(1.0).sleep();
 
 	// Setup the publisher and pass its corresponding member-function to the 'run' function
 	if (_msg_type.compare("std") == 0)
@@ -119,6 +123,10 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 		const ros::Time t_receive = ros::Time::now();
 		if (ret < 0)
 			continue;
+
+		// If this the first measurement, force match the driver count with the IMU's
+		if (_driver_count == 0 && data.dataCntOrTimeStamp > 0)
+			_driver_count = data.dataCntOrTimeStamp - 1;
 
 		// Account for rollover before comparing the data count
 		if((_imu_count > data.dataCntOrTimeStamp  + 65535*_rollover) && (_driver_count > 65000))
@@ -185,7 +193,8 @@ void AdiImuRos::publish_adi_msg(const ros::Time t0, const ros::Time t1, const ad
 	const double gyroX = data.gyro.x * _gyroLSB;
 	const double gyroY = data.gyro.y * _gyroLSB;
 	const double gyroZ = data.gyro.z * _gyroLSB;
-	const float temperature = data.tempOut * _tempLSB;
+	const float temperature = (data.tempOut - 25)/2.0 + 25.0;
+	// const float temperature = data.tempOut * _tempLSB;
 
 	// Compute the timestamp
 	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
@@ -221,7 +230,8 @@ void AdiImuRos::save_csv_file(const ros::Time t0, const ros::Time t1, const adi_
 	const double gyroX = data.gyro.x * _gyroLSB;
 	const double gyroY = data.gyro.y * _gyroLSB;
 	const double gyroZ = data.gyro.z * _gyroLSB;
-	const float temperature = data.tempOut * _tempLSB;
+	const float temperature = (data.tempOut - 25)/2.0 + 25.0;
+	// const float temperature = data.tempOut * _tempLSB;
 
 	// Compute the timestamp
 	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
