@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="csv_folder" default="/tmp"/>
+  <arg name="csv_folder" default="$(find adi_imu_ros)/data"/>
   <arg name="imu_frame" default="imu"/>
   <arg name="spi_dev" default="/dev/spidev0.1"/>
   <arg name="message_type" default="adi"/>
