@@ -1,0 +1,9 @@
+std_msgs/Header header
+time t_request
+time t_receive
+uint64 imu_count
+uint64 driver_count
+float32 temperature
+uint16 error_flag
+geometry_msgs/Vector3 angular_velocity
+geometry_msgs/Vector3 linear_acceleration

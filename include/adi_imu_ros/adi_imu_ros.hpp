@@ -2,9 +2,8 @@
 
 #include "ros/ros.h"
 #include "ros/time.h"
-#include "std_msgs/String.h"
 #include "sensor_msgs/Imu.h"
-
+#include "adi_imu_ros/AdiImu.h"
 #include "adi_imu_driver.h"
 #include "spi_driver.h"
 #include <cmath>
@@ -20,11 +19,10 @@ private:
   std::string _imu_frame;
   // IMU variables
   adi_imu_Device_t _imu;
-  //adi_imu_BurstOutput_t _data;
-  uint64_t _count, _last_imu_count;
+  uint64_t _driver_count, _imu_count;
   uint16_t _rollover;
+  float _acclLSB, _gyroLSB, _tempLSB;
   // Logger and publisher variables
-  bool _save_to_file;
   std::ofstream _csv_stream;
   std::string _msg_type;
 
@@ -35,9 +33,9 @@ public:
     if(_csv_stream.is_open())
       _csv_stream.close();
   };
-  void run(void);
-  // void publish_std_msg();
-  // void publish_adi_msg();
-  // void save_to_file(const ros::Time t1);
+  void run(const std::function<void(const ros::Time, const ros::Time, const adi_imu_BurstOutput_t)>& pub_func);
+  void publish_std_msg(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data);
+  void publish_adi_msg(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data);
+  void save_csv_file(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data);
 };
 
