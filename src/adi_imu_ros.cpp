@@ -40,7 +40,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	// NOTE: These should likely be given by the adi_imu_driver, based on the prodId
 	_acclLSB  = 0.25 * 9.81 / 65536000; /* 0.25mg/2^16 */
 	_gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( M_PI / 180); /* 0.00625 deg / 2^16 */
-	// _tempLSB = (1.0/140);
+	_tempLSB = (1.0/140);
 
 	// Initialize IMU
 	int ret = adi_imu_Init(&_imu);
@@ -193,8 +193,7 @@ void AdiImuRos::publish_adi_msg(const ros::Time t0, const ros::Time t1, const ad
 	const double gyroX = data.gyro.x * _gyroLSB;
 	const double gyroY = data.gyro.y * _gyroLSB;
 	const double gyroZ = data.gyro.z * _gyroLSB;
-	const float temperature = (data.tempOut - 25)/2.0 + 25.0;
-	// const float temperature = data.tempOut * _tempLSB;
+	const float temperature = data.tempOut * _tempLSB + 25.0f;
 
 	// Compute the timestamp
 	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
@@ -230,8 +229,7 @@ void AdiImuRos::save_csv_file(const ros::Time t0, const ros::Time t1, const adi_
 	const double gyroX = data.gyro.x * _gyroLSB;
 	const double gyroY = data.gyro.y * _gyroLSB;
 	const double gyroZ = data.gyro.z * _gyroLSB;
-	const float temperature = (data.tempOut - 25)/2.0 + 25.0;
-	// const float temperature = data.tempOut * _tempLSB;
+	const float temperature = data.tempOut * _tempLSB + 25.0f;
 
 	// Compute the timestamp
 	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
