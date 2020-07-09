@@ -142,7 +142,10 @@ add_subdirectory(external/adi_imu_driver/linux)
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/adi_imu_ros_node.cpp)
+add_executable(${PROJECT_NAME}_node 
+  src/adi_imu_ros_node.cpp
+  src/adi_imu_ros.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
