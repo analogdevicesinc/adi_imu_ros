@@ -7,33 +7,26 @@
 
 #include <adi_imu_ros/adi_imu_ros.hpp>
 
-AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : _nh(nh), _count(0), _rollover(0), _last_imu_count(0)
+
+AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : 
+	_nh(nh), 
+	_driver_count(0), 
+	_imu_count(0),
+	_rollover(0)
 {
 	// Load ROS parameters
 	int prodId, spiSpeed, spiMode, spiBitsPerWord, spiDelay, outputRate;
-	std::string spiDev, output_filename;
-	_nh.param<std::string>("output_filename", output_filename, "/tmp/imu.csv");
+	std::string spiDev, csv_folder;
+	_nh.param<std::string>("csv_folder", csv_folder, "/tmp");
 	_nh.param<std::string>("imu_frame", _imu_frame, "imu");
 	_nh.param<std::string>("spi_dev", spiDev, "/dev/spidev0.0");
-	_nh.param<std::string>("message_type", _msg_type, "standard"); // "standard" or "adi"
+	_nh.param<std::string>("message_type", _msg_type, "std"); // "std", "adi", or "csv"
 	_nh.param<int>("prod_id", prodId, 16545);
 	_nh.param<int>("spi_speed", spiSpeed, 2000000);
 	_nh.param<int>("spi_mode", spiMode, 3);
 	_nh.param<int>("spi_bits_per_word", spiBitsPerWord, 8);
 	_nh.param<int>("spi_delay", spiDelay, 0);
 	_nh.param<int>("output_rate", outputRate, 10);
-	_nh.param<bool>("save_to_file", _save_to_file, false);
-
-	// Setup the logger
-	if(_save_to_file)
-	{
-		_csv_stream.open(output_filename.c_str(), std::ofstream::out | std::ofstream::trunc);
-		if(_csv_stream.is_open())
-		{
-			_csv_stream << "count,timestamp(ns),accX(m/s/s),accY(m/s/s),accZ(m/s/s),";
-			_csv_stream << "gyrX(rad/s),gyrY(rad/s),gyrZ(rad/s),temp(C),status(none)" << std::endl;
-		}
-	}
 
 	// Pass the parameters to the IMU object
 	_imu.prodId = static_cast<uint16_t>(prodId);
@@ -42,6 +35,12 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : _nh(nh), _count(0), _rollover(0
 	_imu.spiMode = static_cast<uint8_t>(spiMode);
 	_imu.spiBitsPerWord = static_cast<uint8_t>(spiBitsPerWord);
 	_imu.spiDelay = static_cast<uint32_t>(spiDelay);
+
+	// Set scaling factors for sensor outputs
+	// NOTE: These should likely be given by the adi_imu_driver, based on the prodId
+	_acclLSB  = 0.25 * 9.81 / 65536000; /* 0.25mg/2^16 */
+	_gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( M_PI / 180); /* 0.00625 deg / 2^16 */
+	_tempLSB = (1.0/140);
 
 	// Initialize IMU
 	int ret = adi_imu_Init(&_imu);
@@ -73,93 +72,166 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : _nh(nh), _count(0), _rollover(0
 		return;
 	}
 
-	// Setup the publisher
-	if (_msg_type.compare("standard") == 0)
-		_pub_imu = _nh.advertise<sensor_msgs::Imu>("data_raw", 1000);
-	// else if (_msg_type.compare("adi") == 0)
-		// _pub_imu = _nh.advertise<adi_imu_ros::AdiImu>("data_raw", 1000);
-	else
+	// Setup the publisher and pass its corresponding member-function to the 'run' function
+	if (_msg_type.compare("std") == 0)
 	{
-		ROS_ERROR("The 'message_type' parameter should either be 'standard' or 'adi'.");
-		return;
+		_pub_imu = _nh.advertise<sensor_msgs::Imu>("data_raw", 1000);
+		run(std::bind(&AdiImuRos::publish_std_msg, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
+	else if (_msg_type.compare("adi") == 0)
+	{
+		_pub_imu = _nh.advertise<adi_imu_ros::AdiImu>("data_raw", 1000);
+		run(std::bind(&AdiImuRos::publish_adi_msg, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	}
+	else if (_msg_type.compare("csv") == 0)
+	{
+		// Create the file name
+		const std::string time_str = std::to_string(ros::Time::now().toNSec());
+		const std::string csv_filename = csv_folder + "/imu_" + time_str + ".csv";
 
-	// Run
-	run();
+		// Open the file and fill-in the header
+		_csv_stream.open(csv_filename.c_str(), std::ofstream::out | std::ofstream::trunc);
+		if(_csv_stream.is_open())
+		{
+			_csv_stream << "imu_count,driver_count,timestamp(ns),accX(m/s/s),accY(m/s/s),accZ(m/s/s),";
+			_csv_stream << "gyrX(rad/s),gyrY(rad/s),gyrZ(rad/s),";
+			_csv_stream << "t_request(ns),t_receive(ns),temp(C),status(none)" << std::endl;
+		}
+		run(std::bind(&AdiImuRos::save_csv_file, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	}
+	else
+		ROS_ERROR("The 'message_type' parameter should either be 'std', 'adi', or 'csv'. Shutting down.");
+	return;
 }
 
 
-void AdiImuRos::run(void)
+// void AdiImuRos::run(void (* pub_func)(const ros::Time, const ros::Time, const adi_imu_BurstOutput_t))
+void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, const adi_imu_BurstOutput_t)>& pub_func)
 {
-	// Set scaling factors for sensor outputs
-	// NOTE: These should likely be given by the adi_imu_driver, based on the prodId
-	const float acclLSB  = 0.25 * 9.81 / 65536000; /* 0.25mg/2^16 */
-	const float gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( M_PI / 180); /* 0.00625 deg / 2^16 */
-	const float tempLSB = (1.0/140);
-
 	// Enter the loop
 	while (ros::ok())
 	{
 		// Restart the loop if you don't get a valid data
-		ros::Time t_request = ros::Time::now();
-		adi_imu_BurstOutput_t _data;
-		int ret = adi_imu_ReadBurst(&_imu, &_data);
+		adi_imu_BurstOutput_t data;
+		const ros::Time t_request = ros::Time::now();
+		const int ret = adi_imu_ReadBurst(&_imu, &data);
+		const ros::Time t_receive = ros::Time::now();
 		if (ret < 0)
 			continue;
-		ros::Time t_response = ros::Time::now();
-
-
-		// Restart the loop if it's the first measurement, and data is not yet synchronized
-//		if(_count == 0 && _data.dataCntOrTimeStamp != 1)
-//			continue;
-
-//		ROS_INFO("data count: %d  read cnt: %d\n", _data.dataCntOrTimeStamp, _count);
 
 		// Account for rollover before comparing the data count
-		if((_last_imu_count > _data.dataCntOrTimeStamp  + 65535*_rollover) && (_count > 65000))
+		if((_imu_count > data.dataCntOrTimeStamp  + 65535*_rollover) && (_driver_count > 65000))
 			++_rollover;
-		uint64_t imu_count = _data.dataCntOrTimeStamp + 65535*_rollover;
+		const uint64_t current_imu_count = data.dataCntOrTimeStamp + 65535*_rollover;
 
 		// Restart the loop if we already read this measurement
-//		if (_data.dataCntOrTimeStamp <= _count)
-		if (imu_count <= _count)
+		if (current_imu_count <= _driver_count)
 			continue;
 
-		// Otherwise, it's a valid new measurement, and we publish
-		++_count;
-		const double accelX = _data.accl.x * acclLSB;
-		const double accelY = _data.accl.y * acclLSB;
-		const double accelZ = _data.accl.z * acclLSB;
-		const double gyroX = _data.gyro.x * gyroLSB;
-		const double gyroY = _data.gyro.y * gyroLSB;
-		const double gyroZ = _data.gyro.z * gyroLSB;
-//		ROS_INFO_THROTTLE(1, "IMU status: %d  data count: %d  read cnt: %d\n", _data.sysEFlag, _data.dataCntOrTimeStamp, _count);
-		ROS_INFO_THROTTLE(1, "IMU status: %d  data count: %ld  read cnt: %ld\n", _data.sysEFlag, imu_count, _count);
+		// Otherwise, it's a valid new measurement, update the counts
+		++_driver_count;
+		_imu_count = current_imu_count;
 
-		/* prepare imu sensor message */
-		sensor_msgs::Imu msg;
-		msg.header.stamp = t_response;
-		msg.header.frame_id = _imu_frame;
-
-		msg.orientation.x = 0.0;
-		msg.orientation.y = 0.0;
-		msg.orientation.z = 0.0;
-		msg.orientation.w = 1.0;
-
-		msg.orientation_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-		msg.angular_velocity_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-		msg.linear_acceleration_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-		msg.angular_velocity.x = gyroX;
-		msg.angular_velocity.y = gyroY;
-		msg.angular_velocity.z = gyroZ;
-		msg.linear_acceleration.x = accelX;
-		msg.linear_acceleration.y = accelY;
-		msg.linear_acceleration.z = accelZ;
-
-		_pub_imu.publish(msg);
-		_last_imu_count = imu_count;
-//		ros::spin();
+		// Publish to the appropriate publisher, communicate with the user, and loop around
+		pub_func(t_request, t_receive, data);
+		ROS_INFO_THROTTLE(1, "IMU status: %d  IMU data cnt: %ld  Driver data cnt: %ld\n", data.sysEFlag, _imu_count, _driver_count);
 	}
-	return;
+}
+
+
+void AdiImuRos::publish_std_msg(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data)
+{
+	// Scale the measurement
+	const double accelX = data.accl.x * _acclLSB;
+	const double accelY = data.accl.y * _acclLSB;
+	const double accelZ = data.accl.z * _acclLSB;
+	const double gyroX = data.gyro.x * _gyroLSB;
+	const double gyroY = data.gyro.y * _gyroLSB;
+	const double gyroZ = data.gyro.z * _gyroLSB;
+
+	// Compute the timestamp
+	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
+
+	// Build the message
+	sensor_msgs::Imu msg;
+	msg.header.stamp = timestamp;
+	msg.header.frame_id = _imu_frame;
+	msg.orientation.x = 0.0;
+	msg.orientation.y = 0.0;
+	msg.orientation.z = 0.0;
+	msg.orientation.w = 1.0;
+	msg.orientation_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	msg.angular_velocity_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	msg.linear_acceleration_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	msg.angular_velocity.x = gyroX;
+	msg.angular_velocity.y = gyroY;
+	msg.angular_velocity.z = gyroZ;
+	msg.linear_acceleration.x = accelX;
+	msg.linear_acceleration.y = accelY;
+	msg.linear_acceleration.z = accelZ;
+
+	// Publish
+	_pub_imu.publish(msg);
+}
+
+
+void AdiImuRos::publish_adi_msg(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data)
+{
+	// Scale the measurement
+	const double accelX = data.accl.x * _acclLSB;
+	const double accelY = data.accl.y * _acclLSB;
+	const double accelZ = data.accl.z * _acclLSB;
+	const double gyroX = data.gyro.x * _gyroLSB;
+	const double gyroY = data.gyro.y * _gyroLSB;
+	const double gyroZ = data.gyro.z * _gyroLSB;
+	const float temperature = data.tempOut * _tempLSB;
+
+	// Compute the timestamp
+	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
+
+	// Build the message
+	adi_imu_ros::AdiImu msg;
+	msg.header.stamp = timestamp;
+	msg.header.frame_id = _imu_frame;
+	msg.t_request = t0;
+	msg.t_receive = t1;
+	msg.imu_count = _imu_count;
+	msg.driver_count = _driver_count;
+	msg.temperature = temperature;
+	msg.error_flag = data.sysEFlag;
+	msg.angular_velocity.x = gyroX;
+	msg.angular_velocity.y = gyroY;
+	msg.angular_velocity.z = gyroZ;
+	msg.linear_acceleration.x = accelX;
+	msg.linear_acceleration.y = accelY;
+	msg.linear_acceleration.z = accelZ;
+
+	// Publish
+	_pub_imu.publish(msg);
+}
+
+
+void AdiImuRos::save_csv_file(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data)
+{
+	// Scale the measurement
+	const double accelX = data.accl.x * _acclLSB;
+	const double accelY = data.accl.y * _acclLSB;
+	const double accelZ = data.accl.z * _acclLSB;
+	const double gyroX = data.gyro.x * _gyroLSB;
+	const double gyroY = data.gyro.y * _gyroLSB;
+	const double gyroZ = data.gyro.z * _gyroLSB;
+	const float temperature = data.tempOut * _tempLSB;
+
+	// Compute the timestamp
+	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
+
+	// Save the measurements to file if the stream is open
+  if(_csv_stream.is_open())
+  {
+    _csv_stream << _imu_count << _driver_count << "," << timestamp.toNSec() << ",";
+    _csv_stream << accelX << "," << accelY << "," << accelX << ",";
+    _csv_stream << gyroX << "," << gyroY << "," << gyroX << ",";
+    _csv_stream << t0.toNSec() << "," << t1.toNSec() << ",";
+    _csv_stream << temperature << ","  << data.sysEFlag << std::endl;
+  }
 }
