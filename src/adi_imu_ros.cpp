@@ -101,6 +101,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 			_csv_stream << "accX(m/s/s),accY(m/s/s),accZ(m/s/s),";
 			_csv_stream << "gyrX(rad/s),gyrY(rad/s),gyrZ(rad/s)";
 			_csv_stream << std::endl;
+			_csv_stream << std::scientific;
 		}
 		run(std::bind(&AdiImuRos::save_csv_file, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
@@ -239,6 +240,7 @@ void AdiImuRos::save_csv_file(const ros::Time t0, const ros::Time t1, const adi_
   {
     _csv_stream << data.sysEFlag << "," << _imu_count << "," << _driver_count << ",";
     _csv_stream << t0.toNSec() << "," << t1.toNSec() << ",";
+    _csv_stream << std::setprecision(6);
     _csv_stream << temperature << ",";
     _csv_stream << std::setprecision(18);
     _csv_stream << accelX << "," << accelY << "," << accelZ << ",";
