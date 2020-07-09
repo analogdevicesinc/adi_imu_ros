@@ -1,9 +1,23 @@
 <launch>
 
+  <!-- Location where the csv file will be stored -->
   <arg name="csv_folder" default="$(find adi_imu_ros)/data"/>
+
+  <!-- Name of the frame associated with the IMU -->
   <arg name="imu_frame" default="imu"/>
+
+  <!-- SPI port on the host computer -->
   <arg name="spi_dev" default="/dev/spidev0.1"/>
+
+  <!-- Specify which message type will be published. You have the following choices: -->
+  <!-- "std": For the standard sensor_msgs/Imu message type -->
+  <!-- "adi": For our custom adi_imu_ros/AdiImu message type -->
+  <!-- "csv": To bypass ROS, and save the data into a csv text file -->
   <arg name="message_type" default="adi"/>
+
+  <!-- Set the desired frame rate of the IMU in Hz -->
+  <!-- Note that the IMU output is decimated, and not all output rates can be achieved -->
+  <!-- The maximum rate might not be attainable either, if the host computer cannot keep up with it -->
   <arg name="output_rate" default="2000"/>
 
   <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adis16545" output="screen">
