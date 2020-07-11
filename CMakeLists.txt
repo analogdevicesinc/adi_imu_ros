@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(adi_imu_ros)
 
-set(PROJ_VERSION_MAJOR 0)
-set(PROJ_VERSION_MINOR 0)
-set(PROJ_VERSION_PATCH 0)
-set(PROJ_VERSION_TWEAK 1)
+set(ADIMU_VERSION_MAJOR 0)
+set(ADIMU_VERSION_MINOR 0)
+set(ADIMU_VERSION_PATCH 0)
+set(ADIMU_VERSION_TWEAK 1)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -127,7 +127,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_subdirectory(external/adi_imu_driver/lib)
+add_subdirectory(external/adi_imu_driver/lib/imu)
+add_subdirectory(external/adi_imu_driver/lib/imu_buf)
 add_subdirectory(external/adi_imu_driver/linux)
 
 ## Declare a C++ library
@@ -163,6 +164,7 @@ target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   adimu
   spi_linux
+  adimubuf
 )
 add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp)
 

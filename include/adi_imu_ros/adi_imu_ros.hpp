@@ -6,6 +6,7 @@
 #include "adi_imu_ros/AdiImu.h"
 #include "adi_imu_driver.h"
 #include "spi_driver.h"
+#include "imu_spi_buffer.h"
 #include <cmath>
 #include <fstream>
 #include <string>
@@ -19,23 +20,20 @@ private:
   std::string _imu_frame;
   // IMU variables
   adi_imu_Device_t _imu;
+  bool _en_isensor_buffer;
   uint64_t _driver_count, _imu_count;
   uint16_t _rollover;
-  float _acclLSB, _gyroLSB, _tempLSB;
   // Logger and publisher variables
   std::ofstream _csv_stream;
   std::string _msg_type;
 
 public:
 	AdiImuRos(const ros::NodeHandle nh);
-  ~AdiImuRos()
-  {
-    if(_csv_stream.is_open())
-      _csv_stream.close();
-  };
-  void run(const std::function<void(const ros::Time, const ros::Time, const adi_imu_BurstOutput_t)>& pub_func);
-  void publish_std_msg(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data);
-  void publish_adi_msg(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data);
-  void save_csv_file(const ros::Time t0, const ros::Time t1, const adi_imu_BurstOutput_t data);
+  ~AdiImuRos();
+  void run(const std::function<void(const ros::Time, const ros::Time, const void*)>& pub_func);
+  void publish_std_msg(const ros::Time t0, const ros::Time t1, const void* scaled_data);
+  void publish_adi_msg(const ros::Time t0, const ros::Time t1, const void* scaled_data);
+  void save_csv_file(const ros::Time t0, const ros::Time t1, const void* scaled_data);
+  void save_csv_raw_file(const ros::Time t0, const ros::Time t1, const void* raw_data);
 };
 
