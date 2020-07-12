@@ -303,9 +303,9 @@ void AdiImuRos::publish_std_msg(const ros::Time t0, const ros::Time t1, const vo
 	msg.orientation_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 	msg.angular_velocity_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 	msg.linear_acceleration_covariance = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-	msg.angular_velocity.x = data->gyro.x;
-	msg.angular_velocity.y = data->gyro.y;
-	msg.angular_velocity.z = data->gyro.z;
+	msg.angular_velocity.x = data->gyro.x * M_PI/180;
+	msg.angular_velocity.y = data->gyro.y * M_PI/180;
+	msg.angular_velocity.z = data->gyro.z * M_PI/180;
 	msg.linear_acceleration.x = data->accl.x;
 	msg.linear_acceleration.y = data->accl.y;
 	msg.linear_acceleration.z = data->accl.z;
@@ -331,9 +331,9 @@ void AdiImuRos::publish_adi_msg(const ros::Time t0, const ros::Time t1, const vo
 	msg.driver_count = _driver_count;
 	msg.temperature = data->tempOut;
 	msg.error_flag = data->sysEFlag;
-	msg.angular_velocity.x = data->gyro.x;
-	msg.angular_velocity.y = data->gyro.y;
-	msg.angular_velocity.z = data->gyro.z;
+	msg.angular_velocity.x = data->gyro.x * M_PI/180;
+	msg.angular_velocity.y = data->gyro.y * M_PI/180;
+	msg.angular_velocity.z = data->gyro.z * M_PI/180;
 	msg.linear_acceleration.x = data->accl.x;
 	msg.linear_acceleration.y = data->accl.y;
 	msg.linear_acceleration.z = data->accl.z;
@@ -396,7 +396,7 @@ void AdiImuRos::save_csv_file(const ros::Time t0, const ros::Time t1, const void
 		_csv_stream << data->tempOut << ",";
 		_csv_stream << std::setprecision(18);
 		_csv_stream << data->accl.x << "," << data->accl.y << "," << data->accl.z << ",";
-		_csv_stream << data->gyro.x << "," << data->gyro.y << "," << data->gyro.z << ",";
+		_csv_stream << data->gyro.x * M_PI/180 << "," << data->gyro.y * M_PI/180 << "," << data->gyro.z * M_PI/180 << ",";
 		_csv_stream << std::endl;
 	}
 }
