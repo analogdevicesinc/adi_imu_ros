@@ -4,6 +4,7 @@
 #include "ros/time.h"
 #include "sensor_msgs/Imu.h"
 #include "adi_imu_ros/AdiImu.h"
+#include "adi_imu_ros/AdiImuRaw.h"
 #include "adi_imu_driver.h"
 #include "spi_driver.h"
 #include "imu_spi_buffer.h"
@@ -33,7 +34,7 @@ public:
   void run(const std::function<void(const ros::Time, const ros::Time, const void*)>& pub_func);
   void publish_std_msg(const ros::Time t0, const ros::Time t1, const void* scaled_data);
   void publish_adi_msg(const ros::Time t0, const ros::Time t1, const void* scaled_data);
+  void publish_adi_raw_msg(const ros::Time t0, const ros::Time t1, const void* raw_data);
   void save_csv_file(const ros::Time t0, const ros::Time t1, const void* scaled_data);
   void save_csv_raw_file(const ros::Time t0, const ros::Time t1, const void* raw_data);
 };
-

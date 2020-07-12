@@ -12,6 +12,7 @@
   <!-- Specify which message type will be published. You have the following choices: -->
   <!-- "std": For the standard sensor_msgs/Imu message type -->
   <!-- "adi": For our custom adi_imu_ros/AdiImu message type -->
+  <!-- "adi_raw": For our custom adi_imu_ros/AdiImuRaw message type -->
   <!-- "csv": To bypass ROS, and save the data into a csv text file -->
   <!-- "csv_raw": To bypass ROS, and save the raw data(hex) into a csv text file -->
   <arg name="message_type" default="adi"/>

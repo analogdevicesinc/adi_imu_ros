@@ -1,0 +1,15 @@
+std_msgs/Header header
+time t_request
+time t_receive
+uint64 imu_count
+uint64 driver_count
+uint16 error_flag
+int16 temperature
+int32 gyroX
+int32 gyroY
+int32 gyroZ
+int32 acclX
+int32 acclY
+int32 acclZ
+uint16 datacnt
+uint32 crc

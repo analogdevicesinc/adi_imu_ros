@@ -158,6 +158,11 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		_pub_imu = _nh.advertise<adi_imu_ros::AdiImu>("data_raw", 1000);
 		run(std::bind(&AdiImuRos::publish_adi_msg, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
+	else if (_msg_type.compare("adi_raw") == 0)
+	{
+		_pub_imu = _nh.advertise<adi_imu_ros::AdiImuRaw>("data_raw", 1000);
+		run(std::bind(&AdiImuRos::publish_adi_raw_msg, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	}
 	else if ((_msg_type.compare("csv") == 0) || (_msg_type.compare("csv_raw") == 0))
 	{
 		// Create the file name
@@ -261,7 +266,7 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 			_imu_count = current_imu_count;
 			
 			// Publish to the appropriate publisher, communicate with the user, and loop around
-			if (_msg_type.compare("csv_raw") == 0)
+			if ((_msg_type.compare("adi_raw") == 0) || (_msg_type.compare("csv_raw") == 0))
 			{
 				pub_func(t_request, t_receive, static_cast<const void*>(g_imu_buf));
 			}
@@ -326,6 +331,44 @@ void AdiImuRos::publish_adi_msg(const ros::Time t0, const ros::Time t1, const vo
 	msg.linear_acceleration.x = data->accl.x;
 	msg.linear_acceleration.y = data->accl.y;
 	msg.linear_acceleration.z = data->accl.z;
+
+	// Publish
+	_pub_imu.publish(msg);
+}
+
+
+void AdiImuRos::publish_adi_raw_msg(const ros::Time t0, const ros::Time t1, const void* raw_data)
+{
+	// Compute the timestamp
+	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
+	adi_imu_BurstOutputRaw_t data;
+	if (_en_isensor_buffer)
+	{
+		data = *(static_cast<const adi_imu_BurstOutputRaw_t*>(raw_data));
+	}
+	else
+	{
+		adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), &data);
+	}
+
+	// Build the message
+	adi_imu_ros::AdiImuRaw msg;
+	msg.header.stamp = timestamp;
+	msg.header.frame_id = _imu_frame;
+	msg.t_request = t0;
+	msg.t_receive = t1;
+	msg.imu_count = _imu_count;
+	msg.driver_count = _driver_count;
+	msg.error_flag = data.sysEFlag;
+	msg.temperature = data.tempOut;
+	msg.gyroX = data.gyro.x;
+	msg.gyroY = data.gyro.y;
+	msg.gyroZ = data.gyro.z;
+	msg.acclX = data.accl.x;
+	msg.acclY = data.accl.y;
+	msg.acclZ = data.accl.z;
+	msg.datacnt = data.dataCntOrTimeStamp;
+	msg.crc = data.crc;
 
 	// Publish
 	_pub_imu.publish(msg);

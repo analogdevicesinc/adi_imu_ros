@@ -1,8 +1,8 @@
 # ROS node for ADI IMU
 
 A C++ ROS node that read sensor data from ADI IMU and publishes message to `/adi_imu/data_raw` topic.
-The node can publish the data as a standard `sensor_msgs/Imu` message, or a custom `adi_imu_ros/AdiImu` message.
-It can alternatively save the data to a csv file, bypassing ROS messaging altogether.
+
+See below for various message types supported.
 
 
 ## Setup instructions
@@ -24,21 +24,37 @@ $ catkin_make install
 ```bash
 $ roscore
 ```
-* In new terminal, wihtin the catkin_ws folder you created, run
+* In new terminal, run
 ```bash
-$ source devel/setup.bash
+$ source <catkin_ws>/devel/setup.bash
 $ rosrun adi_imu_ros adi_imu_ros_node
 ```
 Alternatively, you can launch the node with the provided launch file.
 The most common parameters you might want to change are listed in the launch file.
 You can add more as needed. Look for the parameters list in the c++ file `adi_imu_ros.cpp`.
 ```bash
-$ source devel/setup.bash
-$ roslaunch adi_imu_ros adis16545.launch
+$ source <catkin_ws>/devel/setup.bash
+$ roslaunch adi_imu_ros adis16545.launch [args]
 ```
+`args`:  
+* `csv_folder` - Location where the csv file will be stored [default: `adi_imu_ros/data`]
+* `imu_frame` - Name of the frame associated with the IMU [default: `imu`]
+* `spi_dev` - SPI port on the host computer [default: `/dev/spidev0.1`]
+* [`message_type`](#message-types-supported) - Message type to be published [default: `adi`]
+* `output_rate` - Desired frame rate of the IMU in Hz [default: `2000`]
+
 * In new terminal, wihtin the catkin_ws folder you created, run
 ```bash
+$ source <catkin_ws>/devel/setup.bash
 $ rostopic echo /adi_imu/data_raw
 ```
 You will need to source the devel folder in this terminal prior to running rostopic, if you choose 
-to publish the measurements using our custom message type `adi_imu_ros/AdiImu`. 
+to publish the measurements using our custom message type `adi_imu_ros/AdiImu` or `adi_imu_ros/AdiImuRaw`. 
+
+## Message types supported
+
+* `std` - same as message [`sensor_msgs/Imu`](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Imu.html)
+* `adi` - similar to `sensor_msgs/Imu` but contains mainly accelerometer and gyro outputs. [See for more details](./msg/AdiImu.msg)
+* `adi_raw` - similar to `adi` but contains raw hex outputs from IMU. [See for more details](./msg/AdiImuRaw.msg)
+* `csv` - writes all the outputs to CSV file 
+* `csv_raw` - writes all the raw hex outputs to CSV file 
