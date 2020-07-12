@@ -73,14 +73,14 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		ROS_ERROR("Could not set the imu output data rate.");
 		return;
 	}
-	
-    // Set DATA ready interrupt pin TODO: add to params ?
-    if ((ret = adi_imu_ConfigDataReady(&_imu, DIO1, POSITIVE)) < 0)
+
+	// Set DATA ready interrupt pin TODO: add to params ?
+	if ((ret = adi_imu_ConfigDataReady(&_imu, DIO1, POSITIVE)) < 0)
 	{
 		ROS_ERROR("Could not configure data ready interrupt");
 		return;
 	}
-    if ((ret = adi_imu_SetDataReady(&_imu, ENABLE)) < 0)
+	if ((ret = adi_imu_SetDataReady(&_imu, ENABLE)) < 0)
 	{
 		ROS_ERROR("Could not enable data ready");
 		return;
@@ -132,9 +132,13 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 
 		/* set registers to read from IMU for every data ready interrupt */
 		uint16_t bufPattern[] = {REG_SYS_E_FLAG, REG_TEMP_OUT, \
-                            REG_X_GYRO_LOW, REG_X_GYRO_OUT, REG_Y_GYRO_LOW, REG_Y_GYRO_OUT, REG_Z_GYRO_LOW, REG_Z_GYRO_OUT, \
-                            REG_X_ACCL_LOW, REG_X_ACCL_OUT, REG_Y_ACCL_LOW, REG_Y_ACCL_OUT, REG_Z_ACCL_LOW, REG_Z_ACCL_OUT, \
-                            REG_DATA_CNT, REG_CRC_LWR, REG_CRC_UPR};
+                                REG_X_GYRO_LOW, REG_X_GYRO_OUT, \
+                                REG_Y_GYRO_LOW, REG_Y_GYRO_OUT, \
+                                REG_Z_GYRO_LOW, REG_Z_GYRO_OUT, \
+                                REG_X_ACCL_LOW, REG_X_ACCL_OUT, \
+                                REG_Y_ACCL_LOW, REG_Y_ACCL_OUT, \
+                                REG_Z_ACCL_LOW, REG_Z_ACCL_OUT, \
+                                REG_DATA_CNT, REG_CRC_LWR, REG_CRC_UPR};
 		uint16_t bufPatternLen = static_cast<uint16_t> (sizeof(bufPattern)/sizeof(uint16_t));
 		if ((ret = imubuf_SetPatternAuto(&_imu, bufPatternLen, bufPattern)) < 0)
 		{
@@ -189,6 +193,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	return;
 }
 
+
 AdiImuRos::~AdiImuRos()
 {
 	if (_en_isensor_buffer)
@@ -202,6 +207,7 @@ AdiImuRos::~AdiImuRos()
 	if(_csv_stream.is_open())
 		_csv_stream.close();
 };
+
 
 // void AdiImuRos::run(void (* pub_func)(const ros::Time, const ros::Time, const adi_imu_BurstOutput_t))
 void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, const void*)>& pub_func)
@@ -230,11 +236,11 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 
 		if (_en_isensor_buffer)
 		{
-    		ret = imubuf_ReadBufferAutoMax(&_imu, MAX_BUF_LENGTH, &read_cnt, (uint16_t*)g_imu_buf, &buf_len);
+			ret = imubuf_ReadBufferAutoMax(&_imu, MAX_BUF_LENGTH, &read_cnt, (uint16_t*)g_imu_buf, &buf_len);
 		}
 		else
 		{
-        	ret = adi_imu_ReadBurst(&_imu, (uint8_t*)g_imu_buf, &data);
+			ret = adi_imu_ReadBurst(&_imu, (uint8_t*)g_imu_buf, &data);
 			read_cnt = 1;
 		}
 		const ros::Time t_receive = ros::Time::now();

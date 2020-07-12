@@ -29,7 +29,7 @@ private:
   std::string _msg_type;
 
 public:
-	AdiImuRos(const ros::NodeHandle nh);
+  AdiImuRos(const ros::NodeHandle nh);
   ~AdiImuRos();
   void run(const std::function<void(const ros::Time, const ros::Time, const void*)>& pub_func);
   void publish_std_msg(const ros::Time t0, const ros::Time t1, const void* scaled_data);
