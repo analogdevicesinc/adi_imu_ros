@@ -213,7 +213,7 @@ AdiImuRos::~AdiImuRos()
 	if (_en_isensor_buffer)
 	{
 		uint16_t temp = 0;
-    	if (imubuf_StopCapture(&_imu, IMUBUF_TRUE, &temp) < 0)
+    	if (imubuf_StopCapture(&_imu, &temp) < 0)
 		{
 			ROS_ERROR("Could not stop capture for iSensor IMU buffer.");
 		}
