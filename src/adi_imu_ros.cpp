@@ -57,6 +57,20 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 			ROS_ERROR("Could not initialize iSensor IMU buffer");
 			return;
 		}
+
+		/* Read and print iSensor SPI Buffer info and config*/
+		imubuf_DevInfo_t imuBufInfo;
+		if ((ret = imubuf_GetInfo(&_imu, &imuBufInfo)) < 0)
+		{
+			ROS_ERROR("Could not get the iSensor IMU buffer info.");
+			return;
+		}
+		if ((ret = imubuf_PrintInfo(&_imu, &imuBufInfo)) < 0)
+		{
+			ROS_ERROR("Could not print the iSensor IMU buffer info.");
+			return;
+		}
+
 	}
 
 	// Initialize IMU
@@ -236,7 +250,7 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 
 		if (_en_isensor_buffer)
 		{
-			ret = imubuf_ReadBufferAutoMax(&_imu, MAX_BUF_LENGTH, &read_cnt, (uint16_t*)g_imu_buf, &buf_len);
+			ret = imubuf_ReadBufferAutoMax(&_imu, 50, &read_cnt, (uint16_t*)g_imu_buf, &buf_len);
 		}
 		else
 		{
