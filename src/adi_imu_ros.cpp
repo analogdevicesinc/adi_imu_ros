@@ -12,7 +12,6 @@ static adi_imu_BurstOutputRaw_t g_imu_buf[MAX_BUF_LENGTH] = {0};
 
 AdiImuRos::AdiImuRos(const ros::NodeHandle nh) : 
 	_nh(nh), 
-	_en_isensor_buffer(false),
 	_driver_count(0), 
 	_imu_count(0),
 	_rollover(0)
@@ -30,6 +29,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	_nh.param<int>("spi_bits_per_word", spiBitsPerWord, 8);
 	_nh.param<int>("spi_delay", spiDelay, 0);
 	_nh.param<int>("output_rate", outputRate, 10);
+	_nh.param<bool>("en_isensor_buffer", _en_isensor_buffer, false);
 
 	// Pass the parameters to the IMU object
 	_imu.prodId = static_cast<uint16_t>(prodId);

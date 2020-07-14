@@ -9,6 +9,9 @@
   <!-- SPI port on the host computer -->
   <arg name="spi_dev" default="/dev/spidev0.1"/>
 
+  <!-- SPI port frequency -->
+  <arg name="spi_speed" default="2000000"/>
+
   <!-- Specify which message type will be published. You have the following choices: -->
   <!-- "std": For the standard sensor_msgs/Imu message type -->
   <!-- "adi": For our custom adi_imu_ros/AdiImu message type -->
@@ -22,12 +25,17 @@
   <!-- The maximum rate might not be attainable either, if the host computer cannot keep up with it -->
   <arg name="output_rate" default="2000"/>
 
+  <!-- Enable/disable iSensor SPI Buffer board support for IMU -->
+  <arg name="en_isensor_buffer" default="false"/>
+
   <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adis16545" output="screen">
     <param name="csv_folder" type="string" value="$(arg csv_folder)" />
     <param name="imu_frame" type="string" value="$(arg imu_frame)" />
     <param name="spi_dev" type="string" value="$(arg spi_dev)" />
+    <param name="spi_speed" type="int" value="$(arg spi_speed)" />
     <param name="message_type" type="string" value="$(arg message_type)" />
     <param name="output_rate" type="int" value="$(arg output_rate)" />
+    <param name="en_isensor_buffer" type="bool" value="$(arg en_isensor_buffer)" />
   </node>
   
 </launch>
