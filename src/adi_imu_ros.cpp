@@ -361,14 +361,16 @@ void AdiImuRos::publish_adi_raw_msg(const ros::Time t0, const ros::Time t1, cons
 {
 	// Compute the timestamp
 	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
-	adi_imu_BurstOutputRaw_t data;
+	adi_imu_BurstOutputRaw_t temp;
+	const adi_imu_BurstOutputRaw_t* data;
 	if (_en_isensor_buffer)
 	{
-		data = *(static_cast<const adi_imu_BurstOutputRaw_t*>(raw_data));
+		data = static_cast<const adi_imu_BurstOutputRaw_t*>(raw_data);
 	}
 	else
 	{
-		adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), &data);
+		adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), &temp);
+		data = &temp;
 	}
 
 	// Build the message
@@ -379,16 +381,16 @@ void AdiImuRos::publish_adi_raw_msg(const ros::Time t0, const ros::Time t1, cons
 	msg.t_receive = t1;
 	msg.imu_count = _imu_count;
 	msg.driver_count = _driver_count;
-	msg.error_flag = data.sysEFlag;
-	msg.temperature = data.tempOut;
-	msg.gyroX = data.gyro.x;
-	msg.gyroY = data.gyro.y;
-	msg.gyroZ = data.gyro.z;
-	msg.acclX = data.accl.x;
-	msg.acclY = data.accl.y;
-	msg.acclZ = data.accl.z;
-	msg.datacnt = data.dataCntOrTimeStamp;
-	msg.crc = data.crc;
+	msg.error_flag = data->sysEFlag;
+	msg.temperature = data->tempOut;
+	msg.gyroX = data->gyro.x;
+	msg.gyroY = data->gyro.y;
+	msg.gyroZ = data->gyro.z;
+	msg.acclX = data->accl.x;
+	msg.acclY = data->accl.y;
+	msg.acclZ = data->accl.z;
+	msg.datacnt = data->dataCntOrTimeStamp;
+	msg.crc = data->crc;
 
 	// Publish
 	_pub_imu.publish(msg);
@@ -424,22 +426,24 @@ void AdiImuRos::save_csv_raw_file(const ros::Time t0, const ros::Time t1, const 
 		// Compute the timestamp
 		const ros::Time timestamp = t0 + (t1 - t0)*0.5;
 
-		adi_imu_BurstOutputRaw_t data;
+		adi_imu_BurstOutputRaw_t temp;
+		const adi_imu_BurstOutputRaw_t* data;
 		if (_en_isensor_buffer)
 		{
-			data = *(static_cast<const adi_imu_BurstOutputRaw_t*>(raw_data));
+			data = static_cast<const adi_imu_BurstOutputRaw_t*>(raw_data);
 		}
 		else
 		{
-			adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), &data);
+			adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), &temp);
+			data = &temp;
 		}
 
-		_csv_stream << data.sysEFlag << "," << _imu_count << "," << _driver_count << ",";
+		_csv_stream << data->sysEFlag << "," << _imu_count << "," << _driver_count << ",";
 		_csv_stream << t0.toNSec() << "," << t1.toNSec() << ",";
 		_csv_stream << std::hex;
-		_csv_stream << data.tempOut << ",";
-		_csv_stream << data.accl.x << "," << data.accl.y << "," << data.accl.z << ",";
-		_csv_stream << data.gyro.x << "," << data.gyro.y << "," << data.gyro.z << ",";
+		_csv_stream << data->tempOut << ",";
+		_csv_stream << data->accl.x << "," << data->accl.y << "," << data->accl.z << ",";
+		_csv_stream << data->gyro.x << "," << data->gyro.y << "," << data->gyro.z << ",";
 		_csv_stream << std::dec;
 		_csv_stream << std::endl;
 	}
