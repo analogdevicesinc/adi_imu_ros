@@ -17,7 +17,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	_rollover(0)
 {
 	// Load ROS parameters
-	int prodId, spiSpeed, spiMode, spiBitsPerWord, spiDelay, outputRate;
+	int prodId, spiSpeed, spiMode, spiBitsPerWord, outputRate;
 	std::string spiDev, csv_folder;
 	_nh.param<std::string>("csv_folder", csv_folder, "/tmp");
 	_nh.param<std::string>("imu_frame", _imu_frame, "imu");
@@ -27,9 +27,20 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	_nh.param<int>("spi_speed", spiSpeed, 2000000);
 	_nh.param<int>("spi_mode", spiMode, 3);
 	_nh.param<int>("spi_bits_per_word", spiBitsPerWord, 8);
-	_nh.param<int>("spi_delay", spiDelay, 0);
 	_nh.param<int>("output_rate", outputRate, 10);
 	_nh.param<bool>("en_isensor_buffer", _en_isensor_buffer, false);
+	_nh.param<bool>("en_isensor_burst_mode", _en_isensor_burst_mode, true);
+
+	/* for buffer board, atleast 4MHz required for 2KHz data rate */
+	if (_en_isensor_buffer && spiSpeed < 4000000)
+		spiSpeed = 4000000;
+
+	_stall_time_config = 100; // 100 us for configuration of IMU + iSensorBuffer board
+	
+	/* reduce stall time for faster throughput, 
+		but reducing too much will overrun on previous communication
+		20 us found to be reasonalble */
+	_stall_time_capture = 20;
 
 	// Pass the parameters to the IMU object
 	_imu.prodId = static_cast<uint16_t>(prodId);
@@ -38,7 +49,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	_imu.spiSpeed = static_cast<uint32_t>(spiSpeed);
 	_imu.spiMode = static_cast<uint8_t>(spiMode);
 	_imu.spiBitsPerWord = static_cast<uint8_t>(spiBitsPerWord);
-	_imu.spiDelay = static_cast<uint32_t>(spiDelay);
+	_imu.spiDelay = _stall_time_config;
 
 	// Initialize SPI
 	int ret = spi_Init(&_imu);
@@ -131,6 +142,17 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 			return;
 		}
 		
+		/* enable burst mode */
+		imubuf_BufConfig_t bufConfig;
+		bufConfig.overflowAction = 0;
+		bufConfig.imuBurstEn = (_en_isensor_burst_mode) ? 1 : 0;
+		bufConfig.bufBurstEn = 1;
+		if ((ret = imubuf_ConfigBuf(&_imu, bufConfig)) < 0)
+		{
+			ROS_ERROR("Could not configure iSensor IMU buffer BUF Config");
+			return;
+		}
+
 		/* Read and print iSensor SPI Buffer info and config*/
 		imubuf_DevInfo_t imuBufInfo;
 		if ((ret = imubuf_GetInfo(&_imu, &imuBufInfo)) < 0)
@@ -144,20 +166,31 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 			return;
 		}
 
-		/* set registers to read from IMU for every data ready interrupt */
-		uint16_t bufPattern[] = {REG_SYS_E_FLAG, REG_TEMP_OUT, \
-                                REG_X_GYRO_LOW, REG_X_GYRO_OUT, \
-                                REG_Y_GYRO_LOW, REG_Y_GYRO_OUT, \
-                                REG_Z_GYRO_LOW, REG_Z_GYRO_OUT, \
-                                REG_X_ACCL_LOW, REG_X_ACCL_OUT, \
-                                REG_Y_ACCL_LOW, REG_Y_ACCL_OUT, \
-                                REG_Z_ACCL_LOW, REG_Z_ACCL_OUT, \
-                                REG_DATA_CNT, REG_CRC_LWR, REG_CRC_UPR};
-		uint16_t bufPatternLen = static_cast<uint16_t> (sizeof(bufPattern)/sizeof(uint16_t));
-		if ((ret = imubuf_SetPatternAuto(&_imu, bufPatternLen, bufPattern)) < 0)
+		if (_en_isensor_burst_mode)
 		{
-			ROS_ERROR("Could not set register pattern for iSensor IMU buffer.");
-			return;
+			if ((ret = imubuf_SetPatternImuBurst(&_imu)) < 0)
+			{
+				ROS_ERROR("Could not set register pattern for iSensor IMU buffer.");
+				return;
+			}
+		}
+		else
+		{
+			/* set registers to read from IMU for every data ready interrupt */
+			uint16_t bufPattern[] = {REG_SYS_E_FLAG, REG_TEMP_OUT, \
+									REG_X_GYRO_LOW, REG_X_GYRO_OUT, \
+									REG_Y_GYRO_LOW, REG_Y_GYRO_OUT, \
+									REG_Z_GYRO_LOW, REG_Z_GYRO_OUT, \
+									REG_X_ACCL_LOW, REG_X_ACCL_OUT, \
+									REG_Y_ACCL_LOW, REG_Y_ACCL_OUT, \
+									REG_Z_ACCL_LOW, REG_Z_ACCL_OUT, \
+									REG_DATA_CNT, REG_CRC_LWR, REG_CRC_UPR};
+			uint16_t bufPatternLen = static_cast<uint16_t> (sizeof(bufPattern)/sizeof(uint16_t));
+			if ((ret = imubuf_SetPatternAuto(&_imu, bufPatternLen, bufPattern)) < 0)
+			{
+				ROS_ERROR("Could not set register pattern for iSensor IMU buffer.");
+				return;
+			}
 		}
 	}
 
@@ -203,7 +236,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 			run(std::bind(&AdiImuRos::save_csv_file, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 	else
-		ROS_ERROR("The 'message_type' parameter should either be 'std', 'adi', 'csv', or 'csv_raw'. Shutting down.");
+		ROS_ERROR("The 'message_type' parameter should either be 'std', 'adi', 'adi_raw', 'csv', or 'csv_raw'. Shutting down.");
 	return;
 }
 
@@ -228,6 +261,14 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 {
 	adi_imu_BurstOutput_t data;
 	unsigned burstStartIdx = 0;
+
+	/* set IMU to page 0 before starting capture */
+    if (adi_imu_Write(&_imu, 0x0000, 0x0000) < 0)
+	{
+		ROS_ERROR("Could not set IMU page to 0.");
+		return;
+	}
+
 	if (_en_isensor_buffer)
 	{
 		/* start iSensor buffer capture */
@@ -238,6 +279,9 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 			return;
 		} 
 	}
+
+	/* lets reduce stall time for better data throughput */
+	_imu.spiDelay = _stall_time_capture; 
 
 	// Enter the loop
 	while (ros::ok())
@@ -250,12 +294,13 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 
 		if (_en_isensor_buffer)
 		{
-			ret = imubuf_ReadBufferAutoMax(&_imu, 50, &read_cnt, (uint16_t*)g_imu_buf, &buf_len);
+			read_cnt = 5;
+			ret = imubuf_ReadBurstN(&_imu, read_cnt, (uint16_t*)g_imu_buf, &buf_len);
 		}
 		else
 		{
-			ret = adi_imu_ReadBurst(&_imu, (uint8_t*)g_imu_buf, &data);
 			read_cnt = 1;
+			ret = adi_imu_ReadBurst(&_imu, (uint8_t*)g_imu_buf, &data, read_cnt);
 		}
 		const ros::Time t_receive = ros::Time::now();
 		if (ret < 0)
@@ -263,40 +308,53 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 
 		for (int n=0; n<read_cnt; n++)
 		{
+			uint16_t* raw_out_start;
 			if (_en_isensor_buffer)
 			{
-				adi_imu_ScaleBurstOut_2(&_imu, g_imu_buf + n, &data);
-			}
-
-			// If this the first measurement, force match the driver count with the IMU's
-			if (_driver_count == 0 && data.dataCntOrTimeStamp > 0)
-				_driver_count = data.dataCntOrTimeStamp - 1;
-
-			// Account for rollover before comparing the data count
-			if((_imu_count > data.dataCntOrTimeStamp  + 65535*_rollover) && (_driver_count > 65000))
-				++_rollover;
-			const uint64_t current_imu_count = data.dataCntOrTimeStamp + 65535*_rollover;
-
-			// Restart the loop if we already read this measurement
-			if (current_imu_count <= _driver_count)
-				continue;
-
-			// Otherwise, it's a valid new measurement, update the counts
-			++_driver_count;
-			_imu_count = current_imu_count;
-			
-			// Publish to the appropriate publisher, communicate with the user, and loop around
-			if ((_msg_type.compare("adi_raw") == 0) || (_msg_type.compare("csv_raw") == 0))
-			{
-				pub_func(t_request, t_receive, static_cast<const void*>(g_imu_buf));
+				if (_en_isensor_burst_mode)
+					raw_out_start = (uint16_t*)g_imu_buf + (buf_len * n) + 9;
+				else
+					raw_out_start = (uint16_t*)g_imu_buf + (buf_len * n) + 8;
+				adi_imu_ScaleBurstOut_1(&_imu, (uint8_t*)raw_out_start, FALSE, &data);
 			}
 			else
+				raw_out_start = (uint16_t*)g_imu_buf;
+
+			/* lets ignore burst outputs having data cnt == 0, as these are invalid ones */
+			if(data.dataCntOrTimeStamp != 0)
 			{
-				pub_func(t_request, t_receive, static_cast<const void*>(&data));
+				// If this the first measurement, force match the driver count with the IMU's
+				if (_driver_count == 0 && data.dataCntOrTimeStamp > 0)
+					_driver_count = data.dataCntOrTimeStamp - 1;
+
+				// Account for rollover before comparing the data count
+				if((_imu_count > data.dataCntOrTimeStamp  + 65535*_rollover) && (_driver_count > 65000))
+					++_rollover;
+				const uint64_t current_imu_count = data.dataCntOrTimeStamp + 65535*_rollover;
+
+				// Restart the loop if we already read this measurement
+				if (current_imu_count <= _driver_count)
+					continue;
+
+				// Otherwise, it's a valid new measurement, update the counts
+				++_driver_count;
+				_imu_count = current_imu_count;
+				
+				// Publish to the appropriate publisher, communicate with the user, and loop around
+				if ((_msg_type.compare("adi_raw") == 0) || (_msg_type.compare("csv_raw") == 0))
+				{
+					pub_func(t_request, t_receive, static_cast<const void*>(raw_out_start));
+				}
+				else
+				{
+					pub_func(t_request, t_receive, static_cast<const void*>(&data));
+				}
+				ROS_INFO_THROTTLE(1, "IMU status: %d  IMU data cnt: %ld  Driver data cnt: %ld\n", data.sysEFlag, _imu_count, _driver_count);
 			}
-			ROS_INFO_THROTTLE(1, "IMU status: %d  IMU data cnt: %ld  Driver data cnt: %ld\n", data.sysEFlag, _imu_count, _driver_count);
 		}
 	}
+	/* lets revert stall time back to large value*/
+	_imu.spiDelay = _stall_time_config; 
 }
 
 
@@ -363,15 +421,8 @@ void AdiImuRos::publish_adi_raw_msg(const ros::Time t0, const ros::Time t1, cons
 	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
 	adi_imu_BurstOutputRaw_t temp;
 	const adi_imu_BurstOutputRaw_t* data;
-	if (_en_isensor_buffer)
-	{
-		data = static_cast<const adi_imu_BurstOutputRaw_t*>(raw_data);
-	}
-	else
-	{
-		adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), &temp);
-		data = &temp;
-	}
+	adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), (_en_isensor_buffer) ? FALSE : TRUE, &temp);
+	data = &temp;
 
 	// Build the message
 	adi_imu_ros::AdiImuRaw msg;
@@ -391,7 +442,6 @@ void AdiImuRos::publish_adi_raw_msg(const ros::Time t0, const ros::Time t1, cons
 	msg.acclZ = data->accl.z;
 	msg.datacnt = data->dataCntOrTimeStamp;
 	msg.crc = data->crc;
-
 	// Publish
 	_pub_imu.publish(msg);
 }
@@ -428,15 +478,8 @@ void AdiImuRos::save_csv_raw_file(const ros::Time t0, const ros::Time t1, const 
 
 		adi_imu_BurstOutputRaw_t temp;
 		const adi_imu_BurstOutputRaw_t* data;
-		if (_en_isensor_buffer)
-		{
-			data = static_cast<const adi_imu_BurstOutputRaw_t*>(raw_data);
-		}
-		else
-		{
-			adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), &temp);
-			data = &temp;
-		}
+		adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), (_en_isensor_buffer) ? FALSE : TRUE, &temp);
+		data = &temp;
 
 		_csv_stream << data->sysEFlag << "," << _imu_count << "," << _driver_count << ",";
 		_csv_stream << t0.toNSec() << "," << t1.toNSec() << ",";

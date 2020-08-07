@@ -21,8 +21,9 @@ private:
   std::string _imu_frame;
   // IMU variables
   adi_imu_Device_t _imu;
-  bool _en_isensor_buffer;
+  bool _en_isensor_buffer, _en_isensor_burst_mode;
   uint64_t _driver_count, _imu_count;
+  uint32_t _stall_time_capture, _stall_time_config;
   uint16_t _rollover;
   // Logger and publisher variables
   std::ofstream _csv_stream;
