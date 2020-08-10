@@ -321,7 +321,7 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 				raw_out_start = (uint16_t*)g_imu_buf;
 
 			/* lets ignore burst outputs having data cnt == 0, as these are invalid ones */
-			if(data.dataCntOrTimeStamp != 0)
+			if(data.crc != 0)
 			{
 				// If this the first measurement, force match the driver count with the IMU's
 				if (_driver_count == 0 && data.dataCntOrTimeStamp > 0)
