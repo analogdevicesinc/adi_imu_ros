@@ -224,9 +224,19 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		_csv_stream.open(csv_filename.c_str(), std::ofstream::out | std::ofstream::trunc);
 		if(_csv_stream.is_open())
 		{
-			_csv_stream << "error_flag,imu_count,driver_count,t_request(ns),t_receive(ns),temp(C),";
-			_csv_stream << "accX(m/s/s),accY(m/s/s),accZ(m/s/s),";
-			_csv_stream << "gyrX(rad/s),gyrY(rad/s),gyrZ(rad/s)";
+			_csv_stream << "error_flag,imu_count,driver_count,t_request(ns),t_receive(ns),";
+			if (_msg_type.compare("csv_raw") == 0)
+			{
+				_csv_stream << "temp,";
+				_csv_stream << "accX,accY,accZ,";
+				_csv_stream << "gyrX,gyrY,gyrZ";
+			}
+			else
+			{
+				_csv_stream << "temp(C),";
+				_csv_stream << "accX(m/s/s),accY(m/s/s),accZ(m/s/s),";
+				_csv_stream << "gyrX(rad/s),gyrY(rad/s),gyrZ(rad/s)";
+			}
 			_csv_stream << std::endl;
 			_csv_stream << std::scientific;
 		}
