@@ -42,6 +42,7 @@ $ roslaunch adi_imu_ros adis16545.launch [args]
 * `spi_dev` - SPI port on the host computer [default: `/dev/spidev0.1`]
 * [`message_type`](#message-types-supported) - Message type to be published [default: `adi`]
 * `output_rate` - Desired frame rate of the IMU in Hz [default: `2000`]
+* `en_isensor_buffer` - Enable when using iSensor SPI buffer between host and IMU [default: `false`]
 
 * In new terminal, wihtin the catkin_ws folder you created, run
 ```bash
