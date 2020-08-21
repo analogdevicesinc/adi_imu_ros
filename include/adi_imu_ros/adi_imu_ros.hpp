@@ -11,6 +11,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <fcntl.h>
 
 class AdiImuRos
 {
@@ -23,6 +24,7 @@ private:
   adi_imu_Device_t _imu;
   bool _en_isensor_buffer, _en_isensor_burst_mode;
   uint64_t _driver_count, _imu_count;
+  std::string _pps_gpio;
   uint32_t _stall_time_capture, _stall_time_config;
   uint16_t _rollover;
   // Logger and publisher variables

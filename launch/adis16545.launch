@@ -26,7 +26,10 @@
   <arg name="output_rate" default="2000"/>
 
   <!-- Enable/disable iSensor SPI Buffer board support for IMU -->
-  <arg name="en_isensor_buffer" default="false"/>
+
+  <!-- Set GPIO pin for PPS input to IMU_iSensor buffer board -->
+  <!-- This pin should be set as input to avoid driving it as it's being driven by PPS signal -->
+  <arg name="pps_gpio" default="76"/>
 
   <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adis16545" output="screen">
     <param name="csv_folder" type="string" value="$(arg csv_folder)" />
@@ -36,6 +39,7 @@
     <param name="message_type" type="string" value="$(arg message_type)" />
     <param name="output_rate" type="int" value="$(arg output_rate)" />
     <param name="en_isensor_buffer" type="bool" value="$(arg en_isensor_buffer)" />
+    <param name="pps_gpio" type="string" value="$(arg pps_gpio)" />
   </node>
   
 </launch>
