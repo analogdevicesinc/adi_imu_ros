@@ -130,10 +130,10 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		imubuf_ImuDioConfig_t dioConfig;
 		dioConfig.dataReadyPin = IMUBUF_DIO1; // interrupt from imu to iSensor
 		dioConfig.dataReadyPolarity = RISING_EDGE;
-		dioConfig.ppsPin = 0x00;
-		dioConfig.ppsPolarity = 0x0;
+		dioConfig.ppsPin = IMUBUF_DIO2;
+		dioConfig.ppsPolarity = RISING_EDGE;
 		dioConfig.passThruPin = 0x00;
-		dioConfig.watermarkIrqPin = IMUBUF_DIO2; // interrupt from iSensor to host 
+		dioConfig.watermarkIrqPin = 0x00; // interrupt from iSensor to host 
 		dioConfig.overflowIrqPin = 0x00;
 		dioConfig.errorIrqPin = 0x00;
 		if ((ret = imubuf_ConfigDio(&_imu, dioConfig)) < 0)
@@ -142,6 +142,18 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 			return;
 		}
 		
+		if ((ret = imubuf_EnablePPSSync(&_imu)) < 0)
+		{
+			ROS_ERROR("Could not enable PPS sync for iSensor buffer board");
+			return;
+		}
+
+		if ((ret = imubuf_SetUTC(&_imu, static_cast<uint32_t>(ros::Time::now().toSec()))) < 0)
+		{
+			ROS_ERROR("Could not set current UTC time for iSensor buffer board");
+			return;
+		}
+
 		/* enable burst mode */
 		imubuf_BufConfig_t bufConfig;
 		bufConfig.overflowAction = 0;
@@ -312,7 +324,7 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 			read_cnt = 1;
 			ret = adi_imu_ReadBurst(&_imu, (uint8_t*)g_imu_buf, &data, read_cnt);
 		}
-		const ros::Time t_receive = ros::Time::now();
+		ros::Time t_receive = ros::Time::now();
 		if (ret < 0)
 			continue;
 
@@ -333,6 +345,13 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 			/* lets ignore burst outputs having data cnt == 0, as these are invalid ones */
 			if(data.crc != 0)
 			{
+				if (_en_isensor_burst_mode) {
+					uint8_t* temp = (uint8_t*)(((uint16_t*)g_imu_buf) + (buf_len * n));
+					uint32_t ts = IMU_GET_32BITS( temp, 2);
+					uint32_t ts_us = IMU_GET_32BITS( temp, 6);
+					const ros::Time imu_time(ts, ts_us * 1000);
+					t_receive = imu_time;
+				}
 				// If this the first measurement, force match the driver count with the IMU's
 				if (_driver_count == 0 && data.dataCntOrTimeStamp > 0)
 					_driver_count = data.dataCntOrTimeStamp - 1;
@@ -400,7 +419,9 @@ void AdiImuRos::publish_std_msg(const ros::Time t0, const ros::Time t1, const vo
 void AdiImuRos::publish_adi_msg(const ros::Time t0, const ros::Time t1, const void* scaled_data)
 {
 	// Compute the timestamp
-	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
+	ros::Time timestamp = t1;
+	if (!_en_isensor_buffer)
+		timestamp = t0 + (t1 - t0)*0.5;
 	const adi_imu_BurstOutput_t *data = static_cast<const adi_imu_BurstOutput_t*>(scaled_data);
 
 	// Build the message
@@ -428,7 +449,9 @@ void AdiImuRos::publish_adi_msg(const ros::Time t0, const ros::Time t1, const vo
 void AdiImuRos::publish_adi_raw_msg(const ros::Time t0, const ros::Time t1, const void* raw_data)
 {
 	// Compute the timestamp
-	const ros::Time timestamp = t0 + (t1 - t0)*0.5;
+	ros::Time timestamp = t1;
+	if (!_en_isensor_buffer)
+		timestamp = t0 + (t1 - t0)*0.5;
 	adi_imu_BurstOutputRaw_t temp;
 	const adi_imu_BurstOutputRaw_t* data;
 	adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), (_en_isensor_buffer) ? FALSE : TRUE, &temp);
@@ -463,7 +486,9 @@ void AdiImuRos::save_csv_file(const ros::Time t0, const ros::Time t1, const void
 	if(_csv_stream.is_open())
 	{
 		// Compute the timestamp
-		const ros::Time timestamp = t0 + (t1 - t0)*0.5;
+		ros::Time timestamp = t1;
+		if (!_en_isensor_buffer)
+			timestamp = t0 + (t1 - t0)*0.5;
 		const adi_imu_BurstOutput_t *data = static_cast<const adi_imu_BurstOutput_t*>(scaled_data);
 
 		_csv_stream << data->sysEFlag << "," << _imu_count << "," << _driver_count << ",";
@@ -484,8 +509,9 @@ void AdiImuRos::save_csv_raw_file(const ros::Time t0, const ros::Time t1, const 
 	if(_csv_stream.is_open())
 	{
 		// Compute the timestamp
-		const ros::Time timestamp = t0 + (t1 - t0)*0.5;
-
+		ros::Time timestamp = t1;
+		if (!_en_isensor_buffer)
+			timestamp = t0 + (t1 - t0)*0.5;
 		adi_imu_BurstOutputRaw_t temp;
 		const adi_imu_BurstOutputRaw_t* data;
 		adi_imu_ParseBurstOut(&_imu, static_cast<const uint8_t*>(raw_data), (_en_isensor_buffer) ? FALSE : TRUE, &temp);
