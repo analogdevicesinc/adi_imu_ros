@@ -144,64 +144,24 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		}
 		
 		// export PPS gpio as input so that we dont drive PPS signal by mistake
-		int fd_export = open("/sys/class/gpio/export", O_WRONLY);
-		if (fd_export < 0)
+		if (gpio_export(_pps_gpio.c_str()) < 0)
 		{
-			ROS_ERROR("Could not open /sys/class/gpio/export");
+			ROS_ERROR("Could not export gpio %s", _pps_gpio.c_str());
 			return;
-		}
-		// export mailbox gpio
-		int status = write(fd_export, _pps_gpio.c_str(), strlen(_pps_gpio.c_str())+1);
-		if (close(fd_export) < 0)
-		{
-			ROS_ERROR("Could not close /sys/class/gpio/export");
-			return;
-		}
-		else if (status < 0)
-		{
-			ROS_WARN("Could not write /sys/class/gpio/export. May be already exported ?");
 		}
 
 		// wait for some time to export gpio
 		ros::Duration(0.5).sleep();
 		
 		// open gpio/direction to set direction
-		char gpio_path[80] = "";
-	    sprintf(gpio_path, "/sys/class/gpio/gpio%s/direction", _pps_gpio.c_str());
-	    int fd_direction = open(gpio_path, O_WRONLY);
-		if (fd_direction < 0){
-			ROS_ERROR("Could not open /sys/class/gpio/gpio%s/direction", _pps_gpio.c_str());
-			return;
-		}
-		// set gpio direction to input
-		status = write(fd_direction, "in", 3);
-		if (close(fd_direction) < 0)
-		{
-			ROS_ERROR("Could not close /sys/class/gpio/gpio%s/direction", _pps_gpio.c_str());
-			return;
-		}
-		else if (status < 0)
-		{
-			ROS_ERROR("Could not write /sys/class/gpio/gpio%s/direction", _pps_gpio.c_str());
+		if (gpio_set_direction(_pps_gpio.c_str(), "out") < 0){
+			ROS_ERROR("Could not set direction to gpio %s", _pps_gpio.c_str());
 			return;
 		}
 
-		int fd_unexport = open("/sys/class/gpio/unexport", O_WRONLY);
-		if (fd_unexport < 0)
+		if (gpio_unexport(_pps_gpio.c_str()) < 0)
 		{
-			ROS_ERROR("Could not open /sys/class/gpio/unexport");
-			return;
-		}
-		// export mailbox gpio
-		status = write(fd_unexport, _pps_gpio.c_str(), strlen(_pps_gpio.c_str())+1);
-		if (close(fd_unexport) < 0)
-		{
-			ROS_ERROR("Could not close /sys/class/gpio/unexport");
-			return;
-		}
-		else if (status < 0)
-		{
-			ROS_ERROR("Could not write /sys/class/gpio/unexport");
+			ROS_ERROR("Could not unexport gpio %s", _pps_gpio.c_str());
 			return;
 		}
 

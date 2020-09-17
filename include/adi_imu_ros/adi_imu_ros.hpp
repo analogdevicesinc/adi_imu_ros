@@ -7,6 +7,7 @@
 #include "adi_imu_ros/AdiImuRaw.h"
 #include "adi_imu_driver.h"
 #include "spi_driver.h"
+#include "gpio.h"
 #include "imu_spi_buffer.h"
 #include <cmath>
 #include <fstream>

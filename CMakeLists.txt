@@ -165,6 +165,7 @@ target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   adimu
   spi_driver
+  gpio_driver
   adimubuf
 )
 add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp)
