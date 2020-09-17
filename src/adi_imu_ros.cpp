@@ -306,6 +306,7 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 {
 	adi_imu_BurstOutput_t data;
 	unsigned burstStartIdx = 0;
+	uint64_t prevImuDataCnt = 0;
 
 	/* set IMU to page 0 before starting capture */
     if (adi_imu_Write(&_imu, 0x0000, 0x0000) < 0)
@@ -376,11 +377,13 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 					t_receive = imu_time;
 				}
 				// If this the first measurement, force match the driver count with the IMU's
-				if (_driver_count == 0 && data.dataCntOrTimeStamp > 0)
+				if (_driver_count == 0 && data.dataCntOrTimeStamp > 0){
+					prevImuDataCnt = data.dataCntOrTimeStamp - 1;
 					_driver_count = data.dataCntOrTimeStamp - 1;
+				}
 
 				// Account for rollover before comparing the data count
-				if((_imu_count > data.dataCntOrTimeStamp  + 65535*_rollover) && (_driver_count > 65000))
+				if(prevImuDataCnt > 0 && data.dataCntOrTimeStamp == 0)
 					++_rollover;
 				const uint64_t current_imu_count = data.dataCntOrTimeStamp + 65535*_rollover;
 
@@ -391,7 +394,8 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 				// Otherwise, it's a valid new measurement, update the counts
 				++_driver_count;
 				_imu_count = current_imu_count;
-				
+				prevImuDataCnt = data.dataCntOrTimeStamp;
+
 				// Publish to the appropriate publisher, communicate with the user, and loop around
 				if ((_msg_type.compare("adi_raw") == 0) || (_msg_type.compare("csv_raw") == 0))
 				{
