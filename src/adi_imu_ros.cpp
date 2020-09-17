@@ -385,7 +385,7 @@ void AdiImuRos::run(const std::function<void(const ros::Time, const ros::Time, c
 		else
 		{
 			read_cnt = 1;
-			ret = adi_imu_ReadBurst(&_imu, (uint8_t*)g_imu_buf, &data, read_cnt);
+			ret = adi_imu_ReadBurst(&_imu, (uint8_t*)g_imu_buf, read_cnt, &data);
 		}
 		ros::Time t_receive = ros::Time::now();
 		if (ret < 0)
