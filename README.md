@@ -47,7 +47,7 @@ $ roslaunch adi_imu_ros adis16545.launch [args]
 * In new terminal, wihtin the catkin_ws folder you created, run
 ```bash
 $ source <catkin_ws>/devel/setup.bash
-$ rostopic echo /adi_imu/data_raw
+$ rostopic echo /adis16545/data_raw
 ```
 You will need to source the devel folder in this terminal prior to running rostopic, if you choose 
 to publish the measurements using our custom message type `adi_imu_ros/AdiImu` or `adi_imu_ros/AdiImuRaw`. 
