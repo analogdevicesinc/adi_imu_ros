@@ -1,5 +1,8 @@
 <launch>
 
+  <!-- IMU product ID -->
+  <arg name="prod_id" default="16495"/>
+
   <!-- Location where the csv file will be stored -->
   <arg name="csv_folder" default="$(find adi_imu_ros)/data"/>
 
@@ -7,10 +10,10 @@
   <arg name="imu_frame" default="imu"/>
 
   <!-- SPI port on the host computer -->
-  <arg name="spi_dev" default="/dev/spidev0.1"/>
+  <arg name="spi_dev" default="/dev/spidev1.0"/>
 
   <!-- SPI port frequency -->
-  <arg name="spi_speed" default="2000000"/>
+  <arg name="spi_speed" default="4000000"/>
 
   <!-- Specify which message type will be published. You have the following choices: -->
   <!-- "std": For the standard sensor_msgs/Imu message type -->
@@ -23,7 +26,7 @@
   <!-- Set the desired frame rate of the IMU in Hz -->
   <!-- Note that the IMU output is decimated, and not all output rates can be achieved -->
   <!-- The maximum rate might not be attainable either, if the host computer cannot keep up with it -->
-  <arg name="output_rate" default="2000"/>
+  <arg name="output_rate" default="1000"/>
 
   <!-- Enable/disable iSensor SPI Buffer board support for IMU -->
   <arg name="en_isensor_buffer" default="false"/>
@@ -32,7 +35,8 @@
   <!-- This pin should be set as input to avoid driving it as it's being driven by PPS signal -->
   <arg name="pps_gpio" default="76"/>
 
-  <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adis16545" output="screen">
+  <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adis16495" output="screen">
+    <param name="prod_id" type="int" value="$(arg prod_id)" />
     <param name="csv_folder" type="string" value="$(arg csv_folder)" />
     <param name="imu_frame" type="string" value="$(arg imu_frame)" />
     <param name="spi_dev" type="string" value="$(arg spi_dev)" />

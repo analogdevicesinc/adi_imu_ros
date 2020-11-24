@@ -24,7 +24,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 	_nh.param<std::string>("spi_dev", spiDev, "/dev/spidev0.0");
 	_nh.param<std::string>("message_type", _msg_type, "std"); // "std", "adi", or "csv"
 	_nh.param<std::string>("pps_gpio", _pps_gpio, "76"); // "std", "adi", or "csv"
-	_nh.param<int>("prod_id", prodId, 16545);
+	_nh.param<int>("prod_id", prodId, 16495);
 	_nh.param<int>("spi_speed", spiSpeed, 2000000);
 	_nh.param<int>("spi_mode", spiMode, 3);
 	_nh.param<int>("spi_bits_per_word", spiBitsPerWord, 8);
