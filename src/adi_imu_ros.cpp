@@ -60,6 +60,19 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		return;
 	}
 
+	/* detect if buffer board is present */
+	ret = imubuf_Detect(&_imu);
+	if(_en_isensor_buffer && ret < 0)
+	{
+		ROS_ERROR("Buffer board not present, but buffer mode enabled (en_buffer==True).");
+		return;
+	}
+	else if(!_en_isensor_buffer && ret >= 0)
+	{
+		ROS_ERROR("Buffer board present, but buffer mode disabled (en_buffer==False).");
+		return;
+	}
+    
 	if (_en_isensor_buffer)
 	{
 		/* Initialize IMU BUF first to stop any previous running capture and clear buffer*/
@@ -143,27 +156,29 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 			return;
 		}
 		
-		// export PPS gpio as input so that we dont drive PPS signal by mistake
-		if (gpio_export(_pps_gpio.c_str()) < 0)
-		{
-			ROS_ERROR("Could not export gpio %s", _pps_gpio.c_str());
-			return;
-		}
+		// ensure PPS gpio is properly configured
 
-		// wait for some time to export gpio
-		ros::Duration(0.5).sleep();
+		// // export PPS gpio as input so that we dont drive PPS signal by mistake
+		// if (gpio_export(_pps_gpio.c_str()) < 0)
+		// {
+		// 	ROS_ERROR("Could not export gpio %s", _pps_gpio.c_str());
+		// 	return;
+		// }
+
+		// // wait for some time to export gpio
+		// ros::Duration(0.5).sleep();
 		
-		// open gpio/direction to set direction
-		if (gpio_set_direction(_pps_gpio.c_str(), "out") < 0){
-			ROS_ERROR("Could not set direction to gpio %s", _pps_gpio.c_str());
-			return;
-		}
+		// // open gpio/direction to set direction
+		// if (gpio_set_direction(_pps_gpio.c_str(), "out") < 0){
+		// 	ROS_ERROR("Could not set direction to gpio %s", _pps_gpio.c_str());
+		// 	return;
+		// }
 
-		if (gpio_unexport(_pps_gpio.c_str()) < 0)
-		{
-			ROS_ERROR("Could not unexport gpio %s", _pps_gpio.c_str());
-			return;
-		}
+		// if (gpio_unexport(_pps_gpio.c_str()) < 0)
+		// {
+		// 	ROS_ERROR("Could not unexport gpio %s", _pps_gpio.c_str());
+		// 	return;
+		// }
 
 		if ((ret = imubuf_EnablePPSSync(&_imu)) < 0)
 		{
