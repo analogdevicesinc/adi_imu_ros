@@ -34,7 +34,7 @@ The most common parameters you might want to change are listed in the launch fil
 You can add more as needed. Look for the parameters list in the c++ file `adi_imu_ros.cpp`.
 ```bash
 $ source <catkin_ws>/devel/setup.bash
-$ roslaunch adi_imu_ros adis16495.launch [args]
+$ roslaunch adi_imu_ros adimuros.launch [args]
 ```
 `args`:  
 * `csv_folder` - Location where the csv file will be stored [default: `adi_imu_ros/data`]
@@ -47,7 +47,7 @@ $ roslaunch adi_imu_ros adis16495.launch [args]
 * In new terminal, wihtin the catkin_ws folder you created, run
 ```bash
 $ source <catkin_ws>/devel/setup.bash
-$ rostopic echo /adis16495/data_raw
+$ rostopic echo /adimuros/data_raw
 ```
 You will need to source the devel folder in this terminal prior to running rostopic, if you choose 
 to publish the measurements using our custom message type `adi_imu_ros/AdiImu` or `adi_imu_ros/AdiImuRaw`. 

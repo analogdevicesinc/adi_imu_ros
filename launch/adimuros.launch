@@ -35,7 +35,7 @@
   <!-- This pin should be set as input to avoid driving it as it's being driven by PPS signal -->
   <arg name="pps_gpio" default="76"/>
 
-  <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adis16495" output="screen">
+  <node pkg="adi_imu_ros" type="adi_imu_ros_node" name="adimuros" output="screen">
     <param name="prod_id" type="int" value="$(arg prod_id)" />
     <param name="csv_folder" type="string" value="$(arg csv_folder)" />
     <param name="imu_frame" type="string" value="$(arg imu_frame)" />

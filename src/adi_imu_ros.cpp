@@ -45,7 +45,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 
 	// Pass the parameters to the IMU object
 	_imu.prodId = static_cast<uint16_t>(prodId);
-	_imu.g = 1.0;
+	_imu.g = 9.8;
 	_imu.spiDev = spiDev.c_str();
 	_imu.spiSpeed = static_cast<uint32_t>(spiSpeed);
 	_imu.spiMode = static_cast<uint8_t>(spiMode);
