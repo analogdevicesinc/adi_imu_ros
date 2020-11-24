@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(adi_imu_ros)
 
-set(ADIMU_VERSION_MAJOR 0)
+set(ADIMU_VERSION_MAJOR 1)
 set(ADIMU_VERSION_MINOR 0)
 set(ADIMU_VERSION_PATCH 0)
-set(ADIMU_VERSION_TWEAK 1)
+set(ADIMU_VERSION_TWEAK 0)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
