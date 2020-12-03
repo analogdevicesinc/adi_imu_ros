@@ -1,3 +1,16 @@
+#/**
+#  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+#  * This software is proprietary to Analog Devices, Inc. and its licensors.
+#  *
+#  * Use of this file is governed by the license agreement
+#  * included in this repository.
+#  *
+#  * @file		  CMakeLists.txt
+#  * @author		Sundar Palani (sundar.palani@analog.com)
+#  * @author		Audren Cloitre (audren.cloitre@analog.com)
+#  * @brief 		CMake module for adi_imu_ros node.
+# **/
+
 cmake_minimum_required(VERSION 3.0.2)
 project(adi_imu_ros)
 
