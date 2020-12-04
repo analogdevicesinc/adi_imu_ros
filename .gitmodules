@@ -1,4 +1,4 @@
-[submodule "external/adi_imu_driver"]
-	path = external/adi_imu_driver
-	url = https://github.com/spalani7/adi_imu_driver.git
+[submodule "external/adi-imu-driver"]
+	path = external/adi-imu-driver
+	url = https://github.com/analogdevicesinc/adi-imu-driver.git
 	branch = master
