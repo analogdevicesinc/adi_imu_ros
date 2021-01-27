@@ -152,6 +152,7 @@ AdiImuRos::AdiImuRos(const ros::NodeHandle nh) :
 		dioConfig.dataReadyPolarity = RISING_EDGE;
 		dioConfig.ppsPin = IMUBUF_DIO2;
 		dioConfig.ppsPolarity = RISING_EDGE;
+		dioConfig.ppsFreq = IMUBUF_PPS_FREQ_1HZ;
 		dioConfig.passThruPin = 0x00;
 		dioConfig.watermarkIrqPin = 0x00; // interrupt from iSensor to host 
 		dioConfig.overflowIrqPin = 0x00;
