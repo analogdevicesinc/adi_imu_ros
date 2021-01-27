@@ -141,9 +141,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_subdirectory(external/adi_imu_driver/lib/imu)
-add_subdirectory(external/adi_imu_driver/lib/imu_buf)
-add_subdirectory(external/adi_imu_driver/linux)
+add_subdirectory(external/adi-imu-driver/lib/imu)
+add_subdirectory(external/adi-imu-driver/lib/imu_buf)
+add_subdirectory(external/adi-imu-driver/linux)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}

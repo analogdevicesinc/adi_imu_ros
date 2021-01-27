@@ -9,7 +9,7 @@ See below for various message types supported.
 
 1. Clone repo to your catkin workspace (inside `catkin_ws/src/`)
 ```bash
-$ git clone --recursive -b master git@gitlab.analog.com:spalani1/adi_imu_ros.git
+$ git clone --recursive -b master https://github.com/analogdevicesinc/adi-imu-ros.git
 ```
 
 2. Build and install
